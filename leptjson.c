@@ -1,14 +1,23 @@
-#include<stdlib.h> 	/* NULL, strtod() */
+#include<stdlib.h> 	/* NULL, malloc(), realloc(), free(), strtod() */
 #include<assert.h>  /* assert() */
 #include<errno.h>	/* errno, ERANGE */
 #include<math.h>	/* HUGE_VAL */
 #include"leptjson.h"
 
+#ifndef LEPT_PARSE_STACK_INIT_SIZE
+#define LEPT_PARSE_STACK_INIT_SIZE 256
+#endif
+
+#define EXPECT(c, ch)   do { assert(*c->json == (ch)); c->json++; } whlie(0)
 #define ISDIGIT(ch) 	((ch) >= '0' && (ch) <= '9')
 #define ISDIGIT1TO9(ch) ((ch) >= '1' && (ch) <= '9')
+#define PUTC(c,ch)		do { *(char*)lept_context_push(c, sizeof(char)) = (ch); } while(0)
 
 typedef struct {
 	const char* json;
+	//这是实现变长字符数组的堆栈
+	char* stack;
+	size_t size, top;
 }lept_context;
 
 /* 判断分词 */
@@ -20,6 +29,11 @@ static int lept_parse_literal(lept_context* c, lept_value* v,
 		const char* literal, lept_type type);
 /* 解析数字 */
 static int lept_parse_number(lept_context* c, lept_value* v);
+/* 解析字符串 */
+static int lept_parse_string(lept_context* c, lept_value* v);
+/* 对堆栈的操作 */
+static void* lept_context_push(lept_context* c, size_t size);
+static void* lept_context_pop(lept_context* c, size_t size);
 
 /* 解析函数 */
 int lept_parse(lept_value* v, const char* json)
@@ -27,9 +41,10 @@ int lept_parse(lept_value* v, const char* json)
 	lept_context c;
 	int ret;
 	assert(v != NULL);
-
 	c.json = json;
-	v->type = LEPT_NULL;
+	c.stack = NULL;
+	c.size = c.top = 0;
+	lept_init(v);
 	//处理第一个空白字符
 	lept_parse_whitespace(&c);
 	//处理第二个实义字符
@@ -40,6 +55,9 @@ int lept_parse(lept_value* v, const char* json)
 			ret = LEPT_PARSE_ROOT_NOT_SINGULAR;
 		}
 	}
+	//确保释放前所有数据被弹出
+	assert(c.top == 0);
+	free(c.stack);
 	return ret;
 }
 
@@ -50,8 +68,9 @@ static int lept_parse_value(lept_context* c, lept_value* v)
 		case 't': return lept_parse_literal(c, v, "true", LEPT_TRUE);
 		case 'f': return lept_parse_literal(c, v, "false", LEPT_FALSE);
 		case 'n': return lept_parse_literal(c, v, "null", LEPT_NULL);
-		case '\0':return LEPT_PARSE_EXPECT_VALUE;
 		default:  return lept_parse_number(c, v);
+		case '"': return lept_parse_string(c, v);
+		case '\0':return LEPT_PARSE_EXPECT_VALUE;
 	}
 }
 
@@ -117,17 +136,128 @@ static int lept_parse_number(lept_context* c, lept_value* v)
 	return LEPT_PARSE_OK;
 }
 
+/* 解析字符串 */
+static int lept_parse_string(lept_context* c, lept_value* v)
+{
+	size_t head = c->top, len;
+	const char* p;
+	EXPECT(c, '\"');
+	p->json;
+	for(;;) {
+		switch(ch) {
+			case'\"':
+				len = c->top = head;
+				lept_set_string(v, (const char*)lept_context_pop(c, len), len);
+				c->json = p;
+				return LEPT_PARSE_OK;
+			case'\\':
+				switch(*p++) {
+					case'\"': PUTC(c, '\"'); break;
+					case'\\': PUTC(c, '\\'); break;
+					case'/':  PUTC(c, '/');  break;
+					case'b':  PUTC(c, '\b'); break;
+					case'f':  PUTC(c, '\f'); break;
+					case'n':  PUTC(c, '\n'); break;
+					case'r':  PUTC(c, '\r'); break;
+					case't':  PUTC(c, '\t'); break;
+					default:
+						c->top = head;
+						return LEPT_PARSE_INVALID_STRING_ESCAPE;
+				}
+			case'\0':
+				c->top = head;
+				return LEPT_PARSE_MISS_QUOTATION_MARK;
+			default:
+				if((unsigned char)ch < 0x20) {
+					c->top = head;
+					return LEPT_PARSE_INVALID_STRING_CHAR;
+				}
+				PUTC(c, ch);
+		}
+	}
+}
+
+/* 对堆栈的操作 */
+static void* lept_context_push(lept_context* c, size_t size)
+{
+	void* ret;
+	assert(size > 0);
+	if(c->top + size >= c->size) {
+		if(c->size == 0) {
+			c->size = LEPT_PARSE_STACK_INIT_SIZE;
+		}
+		while(c->top + size >= c->size) {
+			c->size += c->size >> 1; 	//将堆栈以1.5倍扩大
+		}
+		c->stack = (char*)realloc(c->stack, c->size);
+	}
+	ret = c->stack + c->top;
+	c->top += size;
+	return ret;
+}
+
+static void* lept_context_pop(lept_context* c, size_t size)
+{
+	assert(c->top >= size);
+	return c->stack + (c->top -= size);
+}
+
+/* 访问成员函数 */
 lept_type lept_get_type(const lept_value* v)
 {
 	assert(v != NULL);
-
 	return v->type;
+}
+
+int lept_get_boolean(const lept_value* v)
+{
+	assert(v != NULL);
+	assert(v->type == LEPT_TRUE || v->type == LEPT_FALSE);
+	return v->type == LEPT_TRUE;
+}
+
+void lept_set_boolean(lept_value* v, int b)
+{
+	lept_free(v);
+	v->type = b ? LEPT_TRUE : LEPT_FALSE;
 }
 
 double lept_get_number(const lept_value* v)
 {
 	assert(v != NULL);
 	assert(v->type == LEPT_NUMBER);
+	return v->u.num;
+}
 
-	return v->num;
+void lept_set_number(lept_value* v, double num)
+{
+	lept_free(v);
+	v->u.num = num;
+	v->type = LEPT_NUMBER;
+}
+
+const char* lept_get_string(const lept_value* v)
+{
+	assert(v != NULL);
+	assert(v->type == LEPT_STRING);
+	return v->u.str.str;
+}
+
+size_t lept_get_string_length(const lept_value* v)
+{
+	assert(v != NULL);
+	assert(v->type == LEPT_STRING);
+	return v->u.str.len;
+}
+
+void lept_set_string(lept_value* v, const char* str, size_t len)
+{
+	assert(v != NULL);
+	assert(s != NULL || len == 0);
+	lept_free(v);
+	v->u.str.str = (char*)malloc(len + 1);
+	memcpy(v->u.str.str, str, len);
+	v->u.str.str[len] = '\0';
+	v->u.str.len = len;
+	v->type = LEPT_STRING;
 }
