@@ -8,11 +8,15 @@
 #define LEPT_PARSE_STACK_INIT_SIZE 256
 #endif
 
+#ifndef LEPT_PARSE_STRINGIFY_INIT_SIZE
+#define LEPT_PARSE_STRINGIFY_INIT_SIZE 256
+#endif
+
 #define EXPECT(c, ch)   do { assert(*c->json == (ch)); c->json++; } while(0)
 #define ISDIGIT(ch) 	((ch) >= '0' && (ch) <= '9')
 #define ISDIGIT1TO9(ch) ((ch) >= '1' && (ch) <= '9')
 #define PUTC(c,ch)		do { *(char*)lept_context_push(c, sizeof(char)) = (ch); } while(0)
-#define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
+#define PUTS(c, s, len) memcpy(lept_context_push(c, len), s, len)
 
 typedef struct {
 	const char* json;
@@ -40,6 +44,10 @@ static int lept_parse_array(lept_context* c, lept_value* v);
 /* 对堆栈的操作 */
 static void* lept_context_push(lept_context* c, size_t size);
 static void* lept_context_pop(lept_context* c, size_t size);
+/* 生成JSON */
+char* lept_stringify(const lept_value* v, size_t* length);
+static void lept_stingify_value(lept_context* c, const lept_value* v);
+static void lept_stringify_string(lept_context* c, const char* s, size_t len);
 
 /* 解析函数 */
 int lept_parse(lept_value* v, const char* json)
@@ -142,6 +150,7 @@ static int lept_parse_number(lept_context* c, lept_value* v)
 	return LEPT_PARSE_OK;
 }
 
+#define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
 /* 解析字符串 */
 static int lept_parse_string(lept_context* c, lept_value* v)
 {
@@ -303,12 +312,97 @@ static void* lept_context_push(lept_context* c, size_t size)
 	c->top += size;
 	return ret;
 }
-
 static void* lept_context_pop(lept_context* c, size_t size)
 {
 	assert(c->top >= size);
 	return c->stack + (c->top -= size);
 }
+
+/*--------------------------------07BEG---------------------------*/
+/* 调用自定义堆栈存储解析结果  */
+//使用length而不是strlen()可以减少性能消耗
+char* lept_stringify(const lept_value* v, size_t* length)
+{
+	lept_context c;
+	assert(v != NULL);
+	c.stack = (char*)malloc(c.size = LEPT_PARSE_STRINGIFY_INIT_SIZE);
+	c.top = 0;
+	lept_stringify_value(&c, v);
+	if(length) {
+		*length = c.top;
+	}
+	PUTC(&c, '\0');
+	return c.stack;
+}
+
+/* 对应类型转换成JSON值 */
+static void lept_stringify_value(lept_context* c, const lept_value* v)
+{
+	size_t i;
+	switch(v->type) {
+		case LEPT_NULL:		PUTS(c, "null",  4); break;
+		case LEPT_FALSE:	PUTS(c, "false", 5); break;
+		case LEPT_NULL:		PUTS(c, "true",  4); break;
+		case LEPT_NUMBER:	{
+							char buffer[32];
+							//"%.17g"用来把（最大）双精度浮点数转换成文本
+							int length = sprintf(buffer, "%.17g", v->u.num);
+							PUTS(c, buffer, length);
+							}
+							break;
+		case LEPT_STRING:	lept_stringify_string(c, v->u.str.str, v->u.str.len); break;
+		case LEPT_ARRAY:
+			PUTC(c, '[');
+			for(i = 0; i < v->u.a.size; i++) {
+				if(i > 0)
+					PUTC(c, ',');
+				lept_stringify_value(c, &v->u.arr.e[i]);
+			}
+			PUTC(c, ']');
+			break;
+		case LEPT_OBJECT: 	//对象的东西最后再补充
+		default: assert(0 && "invalid type");
+	}
+}
+
+/* 把字符串类型转换成JSON值 */
+static void lept_stringify_string(lept_context* c, const char* s, size_t len)
+{
+	static const char hex_digits[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+	size_t i;
+	char* head, *p;
+	assert(s != NULL);
+	//预先分配足够多的内存，避免多次压栈的开销
+	//len * 6 + 2 : 每个字符最长\uOOXX六个字符加上两个双引号
+	p = head = lept_context_push(c, size = len * 6 + 2);
+	*p++ = '"';
+	for(i = 0; i < len; i++) {
+		unsigned char ch = (unsigned char)s[i];
+		switch(ch) {
+			//处理转义字符
+			case'\"': 	*p++ = '\\'; *p++ = '\"'; break;
+			case'\\': 	*p++ = '\\'; *p++ = '\\'; break;
+			case'\b': 	*p++ = '\\'; *p++ = 'b';  break;
+			case'\f': 	*p++ = '\\'; *p++ = 'f';  break;
+			case'\n': 	*p++ = '\\'; *p++ = 'n';  break;
+			case'\r': 	*p++ = '\\'; *p++ = 'r';  break;
+			case'\t': 	*p++ = '\\'; *p++ = 't';  break;
+			default:
+				//这个if没搞明白
+				if(ch < 0x20) {
+					*p++ = '\\'; *p++ = 'u'; *p++ = '0'; *p++ = '0';
+					*p++ = hex_digits[ch >> 4];
+					*p++ = hex_digits[ch & 15];
+				} else {
+					*p++ = s[i];
+				}
+		}
+	}
+	*p++ = '"';
+	c->top -= size - (p - head);
+}
+
+/*--------------------------------07END---------------------------*/
 
 void lept_free(lept_value* v)
 {
