@@ -24,8 +24,8 @@ leptJSON--简易JSON库
 
 所需要的JSON语法子集
 -----
-`JSON-text = ws value ws<br>
-ws = *(%x20 / %x09 / %x0A / %x0D)<br>
+`JSON-text = ws value ws  <br/>
+ws = *(%x20 / %x09 / %x0A / %x0D)  <br/>
 value = null / false / true / number / string / array / object `<br>
 JSON文本由三个部分组成，首先是空白（ws），接着是一个值，最后是空白(ws)。
 
