@@ -1,52 +1,59 @@
-#leptJSON--¼òÒ×JSON¿â
----
-##¼ò½é
-ÕâÊÇÒ»¸öÊ¹ÓÃCÓïÑÔ±àÐ´µÄJSON¿â¡£ÌØÐÔÈçÏÂ£º
-
- - ·ûºÏ±ê×¼µÄ JSON ½âÎöÆ÷ºÍÉú³ÉÆ÷
- - ÊÖÐ´µÄµÝ¹éÏÂ½µ½âÎöÆ÷
- - ½öÖ§³Ö UTF-8 JSON ÎÄ±¾
- - ½öÖ§³ÖÒÔ double ´æ´¢ JSON number ÀàÐÍ
+leptJSON--ç®€æ˜“JSONåº“
+===
 
 ---
-##¹¤×÷Á÷³Ì
-½âÎö¹ý³Ì£º
+ç®€ä»‹
+-----
+è¿™æ˜¯ä¸€ä¸ªä½¿ç”¨Cè¯­è¨€ç¼–å†™çš„JSONåº“ã€‚ç‰¹æ€§å¦‚ä¸‹ï¼š
 
- 1. ½âÎö×Ö·û
- 2. ÅÐ¶Ï·Ö´Ê
- 3. ½øÈëÏàÓ¦·Ö´ÊµÄ´¦Àíº¯Êý
- 4. Éú³É´Ê·¨·ÖÎö´®
-
-Éú³É¹ý³Ì£º
- ¾ÍÊÇÄæ½âÎö¹ý³Ì¡£
+ - ç¬¦åˆæ ‡å‡†çš„ JSON è§£æžå™¨å’Œç”Ÿæˆå™¨
+ - æ‰‹å†™çš„é€’å½’ä¸‹é™è§£æžå™¨
+ - ä»…æ”¯æŒ UTF-8 JSON æ–‡æœ¬
+ - ä»…æ”¯æŒä»¥ double å­˜å‚¨ JSON number ç±»åž‹
 
 ---
-##ËùÐèÒªµÄJSONÓï·¨×Ó¼¯
+
+å·¥ä½œæµç¨‹
+-----
+è§£æžè¿‡ç¨‹ï¼š
+
+ 1. è§£æžå­—ç¬¦
+ 2. åˆ¤æ–­åˆ†è¯
+ 3. è¿›å…¥ç›¸åº”åˆ†è¯çš„å¤„ç†å‡½æ•°
+ 4. ç”Ÿæˆè¯æ³•åˆ†æžä¸²
+
+ç”Ÿæˆè¿‡ç¨‹ï¼š
+ å°±æ˜¯é€†è§£æžè¿‡ç¨‹ã€‚
+
+---
+
+æ‰€éœ€è¦çš„JSONè¯­æ³•å­é›†
+-----
 `JSON-text = ws value ws
 ws = *(%x20 / %x09 / %x0A / %x0D)
 value = null / false / true / number / string / array / object `
-JSONÎÄ±¾ÓÉÈý¸ö²¿·Ö×é³É£¬Ê×ÏÈÊÇ¿Õ°×£¨ws£©£¬½Ó×ÅÊÇÒ»¸öÖµ£¬×îºóÊÇ¿Õ°×(ws)¡£
+JSONæ–‡æœ¬ç”±ä¸‰ä¸ªéƒ¨åˆ†ç»„æˆï¼Œé¦–å…ˆæ˜¯ç©ºç™½ï¼ˆwsï¼‰ï¼ŒæŽ¥ç€æ˜¯ä¸€ä¸ªå€¼ï¼Œæœ€åŽæ˜¯ç©ºç™½(ws)ã€‚
 
-¿Õ°×(ws)£¬ÊÇÓÉÁã»ò¶à¸ö¿Õ¸ñ·û£¨space U+0020£©¡¢ÖÆ±í·û£¨tab U+0009£©¡¢»»ÐÐ·û£¨LF U+000A£©¡¢»Ø³µ·û£¨CR U+000D£©Ëù×é³É¡£
+ç©ºç™½(ws)ï¼Œæ˜¯ç”±é›¶æˆ–å¤šä¸ªç©ºæ ¼ç¬¦ï¼ˆspace U+0020ï¼‰ã€åˆ¶è¡¨ç¬¦ï¼ˆtab U+0009ï¼‰ã€æ¢è¡Œç¬¦ï¼ˆLF U+000Aï¼‰ã€å›žè½¦ç¬¦ï¼ˆCR U+000Dï¼‰æ‰€ç»„æˆã€‚
 
-Öµ(value)£¬ÊÇnull(¿ÕÖµ) ¡¢ false(¼Ù) ¡¢ true(Õæ) ¡¢ number(Êý×Ö) ¡¢ string(×Ö·û´®) ¡¢ array(Êý×é) ¡¢ object(¶ÔÏó)ÆäÖÐµÄÒ»ÖÖ¡£
+å€¼(value)ï¼Œæ˜¯null(ç©ºå€¼) ã€ false(å‡) ã€ true(çœŸ) ã€ number(æ•°å­—) ã€ string(å­—ç¬¦ä¸²) ã€ array(æ•°ç»„) ã€ object(å¯¹è±¡)å…¶ä¸­çš„ä¸€ç§ã€‚
 
 `null  = "null"
 false = "false"
 true  = "true" `
-null¡¢false¡¢trueµÄÖµ¶¼ÊÇ¶ÔÓ¦µÄ×ÖÃæÁ¿¡£
+nullã€falseã€trueçš„å€¼éƒ½æ˜¯å¯¹åº”çš„å­—é¢é‡ã€‚
 
 `number = [ "-" ] int [ frac ] [ exp ]
 int = "0" / digit1-9 *digit
 frac = "." 1*digit
 exp = ("e" / "E") ["-" / "+"] 1*digit`
-number ÊÇÒÔÊ®½øÖÆ±íÊ¾£¬ËüÖ÷ÒªÓÉ 4 ²¿·ÖË³Ðò×é³É£º¸ººÅ¡¢ÕûÊý¡¢Ð¡Êý¡¢Ö¸Êý¡£Ö»ÓÐÕûÊýÊÇ±ØÐè²¿·Ö¡£
+number æ˜¯ä»¥åè¿›åˆ¶è¡¨ç¤ºï¼Œå®ƒä¸»è¦ç”± 4 éƒ¨åˆ†é¡ºåºç»„æˆï¼šè´Ÿå·ã€æ•´æ•°ã€å°æ•°ã€æŒ‡æ•°ã€‚åªæœ‰æ•´æ•°æ˜¯å¿…éœ€éƒ¨åˆ†ã€‚
 
-ÕûÊý²¿·ÖÈç¹ûÊÇ 0 ¿ªÊ¼£¬Ö»ÄÜÊÇµ¥¸ö 0£»¶øÓÉ 1-9 ¿ªÊ¼µÄ»°£¬¿ÉÒÔ¼ÓÈÎÒâÊýÁ¿µÄÊý×Ö£¨0-9£©¡£Ò²¾ÍÊÇËµ£¬0123 ²»ÊÇÒ»¸öºÏ·¨µÄ JSON Êý×Ö¡£
+æ•´æ•°éƒ¨åˆ†å¦‚æžœæ˜¯ 0 å¼€å§‹ï¼Œåªèƒ½æ˜¯å•ä¸ª 0ï¼›è€Œç”± 1-9 å¼€å§‹çš„è¯ï¼Œå¯ä»¥åŠ ä»»æ„æ•°é‡çš„æ•°å­—ï¼ˆ0-9ï¼‰ã€‚ä¹Ÿå°±æ˜¯è¯´ï¼Œ0123 ä¸æ˜¯ä¸€ä¸ªåˆæ³•çš„ JSON æ•°å­—ã€‚
 
-Ð¡Êý²¿·Ö±È½ÏÖ±¹Û£¬¾ÍÊÇÐ¡ÊýµãºóÊÇÒ»»ò¶à¸öÊý×Ö£¨0-9£©¡£
+å°æ•°éƒ¨åˆ†æ¯”è¾ƒç›´è§‚ï¼Œå°±æ˜¯å°æ•°ç‚¹åŽæ˜¯ä¸€æˆ–å¤šä¸ªæ•°å­—ï¼ˆ0-9ï¼‰ã€‚
 
-JSON ¿ÉÊ¹ÓÃ¿ÆÑ§¼ÇÊý·¨£¬Ö¸Êý²¿·ÖÓÉ´óÐ´ E »òÐ¡Ð´ e ¿ªÊ¼£¬È»ºó¿ÉÓÐÕý¸ººÅ£¬Ö®ºóÊÇÒ»»ò¶à¸öÊý×Ö£¨0-9£©¡£
+JSON å¯ä½¿ç”¨ç§‘å­¦è®°æ•°æ³•ï¼ŒæŒ‡æ•°éƒ¨åˆ†ç”±å¤§å†™ E æˆ–å°å†™ e å¼€å§‹ï¼Œç„¶åŽå¯æœ‰æ­£è´Ÿå·ï¼Œä¹‹åŽæ˜¯ä¸€æˆ–å¤šä¸ªæ•°å­—ï¼ˆ0-9ï¼‰ã€‚
 
 `string = quotation-mark *char quotation-mark
 char = unescaped /
@@ -63,20 +70,22 @@ char = unescaped /
 escape = %x5C          ; \
 quotation-mark = %x22  ; "
 unescaped = %x20-21 / %x23-5B / %x5D-10FFFF`
-JSON ×Ö·û´®ÊÇÓÉÇ°ºóÁ½¸öË«ÒýºÅ(quotation-mark)¼Ð×ÅÁãÖÁ¶à¸ö×Ö·û¡£
+JSON å­—ç¬¦ä¸²æ˜¯ç”±å‰åŽä¸¤ä¸ªåŒå¼•å·(quotation-mark)å¤¹ç€é›¶è‡³å¤šä¸ªå­—ç¬¦ã€‚
 
-×Ö·û·ÖÎªÎÞ×ªÒå×Ö·û»ò×ªÒåÐòÁÐ¡£×ªÒåÐòÁÐÓÐ 9 ÖÖ£¬¶¼ÊÇÒÔ·´Ð±Ïß¿ªÊ¼£¬Èç³£¼ûµÄ \n ´ú±í»»ÐÐ·û¡£
+å­—ç¬¦åˆ†ä¸ºæ— è½¬ä¹‰å­—ç¬¦æˆ–è½¬ä¹‰åºåˆ—ã€‚è½¬ä¹‰åºåˆ—æœ‰ 9 ç§ï¼Œéƒ½æ˜¯ä»¥åæ–œçº¿å¼€å§‹ï¼Œå¦‚å¸¸è§çš„ \n ä»£è¡¨æ¢è¡Œç¬¦ã€‚
 
-P.S.   '\u' Unicode±àÂëÏÈ½âÎö 4 Î»Ê®Áù½øÖÆÕûÊýÎªÂëµã£¬È»ºó°ÑÕâ¸öÂëµã±àÂë³É UTF-8¡£
+P.S.   '\u' Unicodeç¼–ç å…ˆè§£æž 4 ä½åå…­è¿›åˆ¶æ•´æ•°ä¸ºç ç‚¹ï¼Œç„¶åŽæŠŠè¿™ä¸ªç ç‚¹ç¼–ç æˆ UTF-8ã€‚
 
 
 `array = %x5B ws [ value *( ws %x2C ws value ) ] ws %x5D`
-%x5B ÊÇ×óÖÐÀ¨ºÅ [£¬%x2C ÊÇ¶ººÅ , £¬%x5D ÊÇÓÒÖÐÀ¨ºÅ ] £¬ws ÊÇ¿Õ°××Ö·û¡£Ò»¸öÊý×é¿ÉÒÔ°üº¬ÁãÖÁ¶à¸öÖµ£¬ÒÔ¶ººÅ·Ö¸ô£¬ÀýÈç []¡¢[1,2,true]¡¢[[1,2],[3,4],"abc"] ¶¼ÊÇºÏ·¨µÄÊý×é¡£
+%x5B æ˜¯å·¦ä¸­æ‹¬å· [ ï¼Œ%x2C æ˜¯é€—å· , ï¼Œ%x5D æ˜¯å³ä¸­æ‹¬å· ] ï¼Œws æ˜¯ç©ºç™½å­—ç¬¦ã€‚ä¸€ä¸ªæ•°ç»„å¯ä»¥åŒ…å«é›¶è‡³å¤šä¸ªå€¼ï¼Œä»¥é€—å·åˆ†éš”ï¼Œä¾‹å¦‚ []ã€[1,2,true]ã€[[1,2],[3,4],"abc"] éƒ½æ˜¯åˆæ³•çš„æ•°ç»„ã€‚
 
 `member = string ws %x3A ws value
 object = %x7B ws [ member *( ws %x2C ws member ) ] ws %x7D`
-JSON ¶ÔÏóºÍ JSON Êý×é·Ç³£ÏàËÆ£¬Çø±ð°üÀ¨ JSON ¶ÔÏóÒÔ»¨À¨ºÅ {}£¨U+007B¡¢U+007D£©°ü¹ü±íÊ¾£¬ÁíÍâ JSON ¶ÔÏóÓÉ¶ÔÏó³ÉÔ±£¨member£©×é³É£¬¶ø JSON Êý×éÓÉ JSON Öµ×é³É¡£ËùÎ½¶ÔÏó³ÉÔ±£¬¾ÍÊÇ¼üÖµ¶Ô£¬¼ü±ØÐëÎª JSON ×Ö·û´®£¬È»ºóÖµÊÇÈÎºÎ JSON Öµ£¬ÖÐ¼äÒÔÃ°ºÅ :£¨U+003A£©·Ö¸ô¡£
+JSON å¯¹è±¡å’Œ JSON æ•°ç»„éžå¸¸ç›¸ä¼¼ï¼ŒåŒºåˆ«åŒ…æ‹¬ JSON å¯¹è±¡ä»¥èŠ±æ‹¬å· {}ï¼ˆU+007Bã€U+007Dï¼‰åŒ…è£¹è¡¨ç¤ºï¼Œå¦å¤– JSON å¯¹è±¡ç”±å¯¹è±¡æˆå‘˜ï¼ˆmemberï¼‰ç»„æˆï¼Œè€Œ JSON æ•°ç»„ç”± JSON å€¼ç»„æˆã€‚æ‰€è°“å¯¹è±¡æˆå‘˜ï¼Œå°±æ˜¯é”®å€¼å¯¹ï¼Œé”®å¿…é¡»ä¸º JSON å­—ç¬¦ä¸²ï¼Œç„¶åŽå€¼æ˜¯ä»»ä½• JSON å€¼ï¼Œä¸­é—´ä»¥å†’å· :ï¼ˆU+003Aï¼‰åˆ†éš”ã€‚
 
 ---
-##ÒýÓÃ
-±¾ÏîÄ¿²Î¿¼×Ôhttps://github.com/miloyip/json-tutorial
+
+å¼•ç”¨
+-----
+æœ¬é¡¹ç›®å‚è€ƒè‡ªhttps://github.com/miloyip/json-tutorial
