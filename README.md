@@ -24,8 +24,8 @@ leptJSON--简易JSON库
 
 所需要的JSON语法子集
 -----
-`JSON-text = ws value ws
-ws = *(%x20 / %x09 / %x0A / %x0D)
+`JSON-text = ws value ws<br>
+ws = *(%x20 / %x09 / %x0A / %x0D)<br>
 value = null / false / true / number / string / array / object `<br>
 JSON文本由三个部分组成，首先是空白（ws），接着是一个值，最后是空白(ws)。
 
@@ -33,14 +33,14 @@ JSON文本由三个部分组成，首先是空白（ws），接着是一个值�
 
 值(value)，是null(空值) 、 false(假) 、 true(真) 、 number(数字) 、 string(字符串) 、 array(数组) 、 object(对象)其中的一种。
 
-`null  = "null"
-false = "false"
+`null  = "null"<br>
+false = "false"<br>
 true  = "true" `<br>
 null、false、true的值都是对应的字面量。
 
-`number = [ "-" ] int [ frac ] [ exp ]
-int = "0" / digit1-9 *digit
-frac = "." 1*digit
+`number = [ "-" ] int [ frac ] [ exp ] <br>
+int = "0" / digit1-9 *digit <br>
+frac = "." 1*digit <br>
 exp = ("e" / "E") ["-" / "+"] 1*digit`<br>
 number 是以十进制表示，它主要由 4 部分顺序组成：负号、整数、小数、指数。只有整数是必需部分。
 
