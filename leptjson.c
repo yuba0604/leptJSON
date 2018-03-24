@@ -2,6 +2,8 @@
 #include<assert.h>  /* assert() */
 #include<errno.h>	/* errno, ERANGE */
 #include<math.h>	/* HUGE_VAL */
+#include<stdio.h>	/* sprintf() */
+#include<string.h>	/* memcpy() */
 #include"leptjson.h"
 
 #ifndef LEPT_PARSE_STACK_INIT_SIZE
@@ -41,6 +43,8 @@ static const char* lept_parse_hex4(const char* p, unsigned u);
 static void lept_encode_utf8(lept_context* c, unsigned u);
 /* 解析数组 */
 static int lept_parse_array(lept_context* c, lept_value* v);
+/* 解析对象 */
+static int lept_parse_object(lept_context* c, lept_value* v);
 /* 对堆栈的操作 */
 static void* lept_context_push(lept_context* c, size_t size);
 static void* lept_context_pop(lept_context* c, size_t size);
@@ -51,6 +55,7 @@ static void lept_stringify_string(lept_context* c, const char* s, size_t len);
 
 /* 解析函数 */
 int lept_parse(lept_value* v, const char* json)
+					case '/':	PUTC(c, '/' ); break;
 {
 	lept_context c;
 	int ret;
@@ -84,22 +89,28 @@ static int lept_parse_value(lept_context* c, lept_value* v)
 		case 'n': return lept_parse_literal(c, v, "null", LEPT_NULL);
 		default:  return lept_parse_number(c, v);
 		case '"': return lept_parse_string(c, v);
+		case '[': return lept_parse_array(c, v);
+		case '{': return lept_parse_object(c, v);
 		case '\0':return LEPT_PARSE_EXPECT_VALUE;
 	}
 }
 
-/* 解析空格 */
+/*********************************************************/
+/* 解析空格
+*  读到空格，制表符，回车和换行符就跳过 */
+/*********************************************************/
 static void lept_parse_whitespace(lept_context* c)
 {
 	const char *p = c->json;
-	//读到空格，制表符，回车和换行符就跳过
 	while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
 		p++;
 	}
 	c->json = p;
 }
-
-/* 解析简单字面量true, false, null */		
+/*********************************************************/
+/* 解析简单字面量true, false, null 
+*  将true,flase,null直接解析为对应字面量 */
+/*********************************************************/
 static int lept_parse_literal(lept_context* c, lept_value* v,
 		const char* literal, lept_type type)
 {
@@ -152,7 +163,7 @@ static int lept_parse_number(lept_context* c, lept_value* v)
 
 #define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
 /* 解析字符串 */
-static int lept_parse_string(lept_context* c, lept_value* v)
+/*static int lept_parse_string(lept_context* c, lept_value* v)
 {
 	size_t head = c->top, len;
 	unsigned u, u2;
@@ -206,6 +217,70 @@ static int lept_parse_string(lept_context* c, lept_value* v)
 					c->top = head;
 					return LEPT_PARSE_INVALID_STRING_CHAR;
 				}
+				PUTC(c, ch);
+		}
+	}
+}*/
+static int lept_parse_string(lept_context* c, lept_value* v)
+{
+	int rtn;
+	char* s;
+	size_t len;
+	if((rtn = lept_parse_string_raw(c, &s, &len)) == LEPT_PARSE_OK)
+		lept_set_string(v, s, len);
+	return rtn;
+}
+
+static int lept_parse_string_raw(lept_context* c, char** str, size_t* len)
+{
+	size_t head = c->top;
+	unsigned u, u2;
+	const char* p;
+	EXPECT(c, '\"');
+	p = c->json;
+	for(;;) {
+		char ch = *p++;
+		switch(ch) {
+			case '\"':
+				*len = c->top - head;
+				*str = lept_context_pop(c, *len);
+				c->json = p;
+				return LEPT_PARSE_OK;
+			case '\\':
+				switch(*p++) {
+					case '\"':	PUTC(c, '\"'); break;
+					case '\\':	PUTC(c, '\\'); break;
+					case '/':	PUTC(c, '/' ); break;
+					case 'b':	PUTC(c, '\b'); break;
+					case 'f':	PUTC(c, '\f'); break;
+					case 'n':	PUTC(c, '\n'); break;
+					case 'r':	PUTC(c, '\r'); break;
+					case 't':	PUTC(c, '\t'); break;
+					case 'u':
+						if(!(p = lept_parse_hex4(p, &u)))
+							STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
+						if(u >= 0xD800 && u <= 0xDBFF) {
+							if(*p++ != '\\')
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
+							if(*p++ != 'u')
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
+							if(!(p = lept_parse_hex4(p, &u2)))
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
+							if(u2 < 0xDC00 || u2 > 0xDFFF)
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
+							u = (((u - 0xD800) << 10) | (u2 - 0xDC00)) + 0x10000;
+						}
+						lept_encode_utf8(c, u);
+						break;
+					default:
+						STRING_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE);
+				}
+				break;
+			case '\0':
+				STRING_ERROR(LEPT_PARSE_MISS_QUOTATION_MARK);
+			default:
+				if((unsigned char)ch < 0x20)
+					STRING_ERROR(LEPT_PARSE_INVALID_STRING_CHAR);
 				PUTC(c, ch);
 		}
 	}
@@ -293,6 +368,73 @@ static int lept_parse_array(lept_context* c, lept_value* v)
 	}
 	return ret;
 }
+/* 解析对象 */
+static int lept_parse_object(lept_context* c, lept_value* v)
+{
+	size_t i, size;
+	lept_member m;
+	int ret;
+	EXPECT(c, '{');
+	lept_parse_whitespace(c);
+	if(*c->json == '}') {
+		c->json++;
+		v->type = LEPT_OBJECT;
+		v->u.obj.mem = 0;
+		v->u.obj.size = 0;
+		return LEPT_PARSE_OK;
+	}
+	mem.k = NULL;
+	size = 0;
+	for(;;) {
+		char* str;
+		lept_init(&m.v);
+		if(*c->json != '"') {
+			ret = LEPT_PARSE_MISS_KEY;
+			break;
+		}
+		if((ret = lept_parse_string_raw(c, &str, &m.klen)) != LEPT_PARSE_OK)
+			break;
+		memcpy(m.k = (char*)malloc(m.klen + 1), str, m.klen);
+		m.k[m.klen] = '\0';
+		lept_parse_whitespace(c);
+		if(*c->json != ':') {
+			ret = LEPT_PARSE_MISS_COLON;
+			break;
+		}
+		c->json++;
+		lept_parse_whitespace(c);
+		if((ret = lept_parse_value(c, &m.v)) != LEPT_PARSE_OK)
+			break;
+		memcpy(lept_context_push(c, sizeof(lept_member)), &m, sizeof(lept_member));
+		size++;
+		m.k = NULL;
+		lept_parse_whitespace(c);
+		if(*c->json == ',') {
+			c->json++;
+			lept_parse_whitespace(c);
+		}
+		else if(*c->json == '}') {
+			size_t s = sizeof(lept_member) * size;
+			c->json++;
+			v->type = LEPT_OBJECT;
+			v->u.obj.size = size;
+			memcpy(v->u.obj.mem = (lept_member*)malloc(s), lept_context_pop(c, s), s);
+			return LEPT_PARSE_OK;
+		}
+		else {
+			ret = LEPT_PARSE_MISS_COMMA_OR_CURLY_BRACKET;
+			break;
+		}
+	}
+	free(m.k);
+	for(i = 0; i < size; i++) {
+		lept_member* m = (lept_member*)lept_context_pop(c, sizeof(lept_member));
+		free(m->k);
+		lept_free(&m->v);
+	}
+	v->type = LEPT_NULL;
+	return ret;
+}
 
 /* 对堆栈的操作 */
 static void* lept_context_push(lept_context* c, size_t size)
@@ -318,7 +460,6 @@ static void* lept_context_pop(lept_context* c, size_t size)
 	return c->stack + (c->top -= size);
 }
 
-/*--------------------------------07BEG---------------------------*/
 /* 调用自定义堆栈存储解析结果  */
 //使用length而不是strlen()可以减少性能消耗
 char* lept_stringify(const lept_value* v, size_t* length)
@@ -353,14 +494,23 @@ static void lept_stringify_value(lept_context* c, const lept_value* v)
 		case LEPT_STRING:	lept_stringify_string(c, v->u.str.str, v->u.str.len); break;
 		case LEPT_ARRAY:
 			PUTC(c, '[');
-			for(i = 0; i < v->u.a.size; i++) {
+			for(i = 0; i < v->u.arr.size; i++) {
 				if(i > 0)
 					PUTC(c, ',');
 				lept_stringify_value(c, &v->u.arr.e[i]);
 			}
 			PUTC(c, ']');
 			break;
-		case LEPT_OBJECT: 	//对象的东西最后再补充
+		case LEPT_OBJECT:
+			PUTC(c, '{');
+			for(i = 0; i < v->u.obj.size; i++) {
+				if(i > 0)	PUTC(c, ',');
+				lept_stringify_string(c, v->u.obj.mem[i].k, v->u.obj.mem[i].klen);
+				PUTC(c, ':');
+				lept_stringify_value(c, &v->u.obj.mem[i].v);
+			}
+			PUTC(c, '}');
+			break;
 		default: assert(0 && "invalid type");
 	}
 }
@@ -401,8 +551,6 @@ static void lept_stringify_string(lept_context* c, const char* s, size_t len)
 	*p++ = '"';
 	c->top -= size - (p - head);
 }
-
-/*--------------------------------07END---------------------------*/
 
 void lept_free(lept_value* v)
 {
