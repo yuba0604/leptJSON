@@ -7,13 +7,22 @@ typedef enum{ LEPT_NULL, LEPT_FALSE, LEPT_TRUE, LEPT_NUMBER, LEPT_STRING, LEPT_A
 
 /*用来表示语法生成树的节点*/
 typedef struct lept_value lept_value;
+
+typedef struct lept_member lept_member;
+
 struct lept_value{
 	union {
-		struct { lept_value* e; size_t size;}arr;/*数组*/
-		struct {char* str; size_t len; }str;	/*变长字符串*/
-		double num; 							/*数字*/
+		struct { lept_member* mem; size_t size;}obj;	/*对象*/
+		struct { lept_value* e; size_t size;}arr;		/*数组*/
+		struct {char* str; size_t len; }str;			/*变长字符串*/
+		double num; 									/*数字*/
 	}u;
 	lept_type type;
+};
+
+struct lept_member {
+	char* k; size_t klen;
+	lept_value v;
 };
 
 /*解析JSON的函数
@@ -58,5 +67,10 @@ void lept_set_string(lept_value* v, const char* s, size_t len);
 
 size_t lept_get_array_size(const lept_value* v);
 lept_value* lept_get_array_element(const lept_value* v, size_t index);
+
+size_t lept_get_object_size(const lept_value* v);
+const char* lept_get_object_key(const lept_value* v, size_t index);
+size_t lept_get_object_key_length(const lept_value* v, size_t index);
+lept_value* lept_get_object_value(const lept_value* v, size_t index);
 
 #endif /* LEPTJSON_H__*/
